@@ -292,3 +292,193 @@ SELECT DEPTNO, SUM(DECODE(job, 'ANALYST', sal)) as "ANALYST",
                 SUM(DECODE(job, 'SALESMAN', sal)) as "SALESMAN"
     FROM emp
     GROUP BY deptno;
+
+
+--48. COLUMN을 ROW로 출력하기 2 (PIVOT)
+SELECT *
+    FROM (select deptno, sal from emp)
+    PIVOT (sum(sal) for deptno in (10, 20, 30)); --예제 47 좀더 간단
+    
+--문자형 데이터
+--직업과 직업별 토탈 월급을 가로로 출력하는 예제
+SELECT *
+    FROM (select job, sal from emp)
+    PIVOT (sum(sal) for job in ('ANALYST', 'CLERK', 'MANAGER', 'SALESMAN'));
+/*
+*PIVOT문 사용: FROM절에 괄호를 사용해서 특정 컬럼만 선택해야 함 
+괄호 안에는 결과에 필요한 컬럼만 선택하는 쿼리문을 작성
+
+1) 출력되는 결과에 필요한 데이터가 있는 컬럼인 직업과 월급을 선택
+2) PIVOT문을 이용해서 토탈 월급을 출력
+3) 컬럼명에 싱글 쿼테이션 마크 -> 출력X려면 as 뒤에 해당 직업을 더블 쿼테이션으로 둘러서 작성
+*/    
+
+SELECT *
+    FROM (select job, sal from emp)
+    PIVOT(sum(sal) for job in('ANALYST' as "ANALYST", 'CLERK' as "CLERK",
+            'MANAGER' as "MANAGER", 'SALESMAN' as "SALESMAN")); --싱글 쿼테이션 제거
+
+
+--49. ROW를 COLUMN으로 출력하기(UNPIVOT)
+drop  table order2;
+
+--테이블 생성
+create table order2
+( ename  varchar2(10),
+  bicycle  number(10),
+  camera   number(10),
+  notebook  number(10) );
+
+insert  into  order2  values('SMITH', 2,3,1);
+insert  into  order2  values('ALLEN',1,2,3 );
+insert  into  order2  values('KING',3,2,2 );
+
+commit;
+
+--UNPIVOT: PIVOT문과는 반대로 열을 행으로 출력 
+SELECT *
+    FROM order2
+    UNPIVOT(건수 for 아이템 in (BICYCLE, CAMERA, NOTEBOOK));
+    
+ SELECT *
+    FROM order2
+    UNPIVOT (건수 for 아이템 in (BICYCLE as 'B', CAMERA as 'C', NOTEBOOK as 'N'));
+
+/*
+건수: 가로로 저장되어 있는 데이터를 세로로 unpivot시킬 출력 열 이름, 이 열 이름은 임의로 지정
+아이템: 가로로 되어 있는 order2 테이블의 컬럼명을 unpivot시켜 세로로 출력할 열 이름, 이름 임의 지정
+*/
+
+--order2 테이블의 데이터에 NULL이 포함되어 있다면 UNPIVOT된 결과에서 출력이 되지 않는다
+UPDATE ORDER2 SET NOTEBOOK = NULL WHERE ENAME='SMITH'; -- NULL값으로 변경
+
+--INCLUDE NULL: NULL 값인 행도 결과에 포함
+SELECT *
+    FROM order2
+    UNPIVOT INCLUDE NULLS(건수 for 아이템 in (BICYCLE as 'B', CAMERA as 'C',
+                                             NOTEBOOK as 'N'));
+
+
+--50. 데이터 분석 함수로 누적 데이터 출력하기(SUM OVER)
+SELECT empno, ename, sal, SUM(SAL) OVER (ORDER BY empno ROWS
+                                        BETWEEN UNBOUNDED PRECEDING
+                                        AND CURRENT ROW) 누적치
+        FROM emp
+        WHERE job in('ANALYST', 'MANAGER'); --월급의 누적치
+        
+/* 
+OVER 다음의 괄호 안에는 값을 누적할 윈도우를 지정할 수 있음
+
+ROWS: 윈도우 기준
+<윈도우 방식>
+UNBOUNDED PRECEDING: 맨 첫 번째 행을 가리킵니다
+UNBOUNDED FOLLOWING: 맨 마지막 행을 가리킵니다
+CURRENT ROW: 현재 행을 가리킵니다
+
+BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW: 제일 첫번째 행부터 현재 행까지의 값
+*/
+
+
+--51. 데이터 분석 함수로 비율 출력하기 (RATIO_TO_REPORT)
+SELECT empno, ename, sal, RATIO_TO_REPORT(sal) OVER () as 비율
+    FROM emp
+    WHERE deptno = 20; --20번 부서 내에서의 자신의 월급 비율
+    
+SELECT empno, ename, sal, RATIO_TO_REPORT(sal) OVER() as 비율,
+                            SAL/SUM(sal) OVER () as "비교 비율"
+        FROM emp
+        WHERE deptno = 20; --RATIO_TO_REPORT(sal)의 결과와 동일 출력
+--20번 부서 번호인 사원들의 월급을 20번 부서 번호인 사원드르이 전체 월급으로 나누어 출력
+
+
+--52. 데이터 분석 함수로 집계 결과 출력하기 1 (ROLLUP)
+SELECT job, sum(sal)
+    FROM emp
+    GROUP BY job; --ROLLUP 추가X
+
+SELECT job, sum(sal)
+    FROM emp
+    GROUP BY ROLLUP(job); -- 맨 마지막 행에 토탈 월급 출력
+--ROLLUP을 이용하여 직업과 직업별 토탈월급을 출력하고 맨 아래쪽에 전체 토탈 월급을 추가적으로 출력
+
+--직업과 직업별 토탈 월급을 출력하는 쿼리에 ROLLUP만 붙여주면 전체 토탈 월급을 추가적으로 볼 수 있음
+--맨 아래에 토탈 월급도 출력되고 JOB 컬럼의 데이터도 오름차순으로 정렬되어 출력됨
+
+--ROLLUP에 컬럼 2개 사용: 3가지 집계 결과
+SELECT deptno, job, sum(sal)
+    FROM emp
+    GROUP BY ROLLUP(deptno, job); 
+--1) 부서번호별 직업별 토탈 월급 deptno, job / 2) 부서 번호별 토탈 월급 deptno / 3) 전체 토탈 월급 ()
+
+
+--53. 데이터 분석 함수로 집계 결과 출력하기 2 (CUBE)
+SELECT job, sum(sal)
+    FROM emp
+    GROUP BY job; --CUBE(X)
+
+SELECT job, sum(sal)
+    FROM emp
+    GROUP BY CUBE(job); --첫 번째 행에 토탈 월급 출력
+    
+--CUBE에 컬럼 2개: 4가지 집계 결과
+SELECT deptno, job, sum(sal)
+    FROM emp
+    GROUP BY CUBE(deptno, job);
+
+/*
+1) 전체 토탈 월급() / 2) 직업별 토탈 월급 job /
+3) 부서 번호별 토탈 월급 deptno / 4) 부서 번호별 직업별 토탈 월급 deptno, job
+*/    
+
+
+--54. 데이터 분석 함수로 집계 결과 출력하기 3 (GROUPING SETS)
+SELECT deptno, job, sum(sal)
+    FROM emp
+    GROUP BY GROUPING SETS((deptno), (job), ());
+
+/*
+GROUPING SETS 괄호 안에 집계하고 싶은 컬럼명을 기술하면, 기술한대로 결과를 출력
+
+1) GROUPING SETS((deptno), (job), ()) : 부서 번호별 집계, 직업별 집계, 전체 집계
+2) GROUPING SETS((deptno), (job)): 부서 번호별 집계, 직업별 집계
+3) GROUPING SETS((deptno, job), ()): 부서 번호와 직업별 집계, 전체 집계
+4) GROUPING SETS((deptno, job)): 부서 번호와 직업별 집계
+*/
+
+--ROLLUP 사용
+SELECT deptno, sum(sal)
+    FROM emp
+    GROUP BY ROLLUP(deptno);
+
+--GROUPING SETS를 사용
+SELECT deptno, sum(sal)
+    FROM emp
+    GROUP BY GROUPING
+SETS((deptno), () );
+--()는 전체를 의미, 전체를 대상으로 월급을 집계 / 결과는 동일하나 GROUPING SETS가 결과 예측 더 용이
+
+
+--55. 데이터 분석 함수로 출력 결과 넘버링 하기(ROW_NUMBER)
+SELECT empno, ename, sal, RANK() OVER (ORDER BY sal DESC) RANK,
+                        DENSE_RANK() OVER (ORDER BY sal DESC) DENSE_RANK,
+                        ROW_NUMBER() OVER (ORDER BY sal DESC) 번호
+    FROM emp
+    WHERE deptno = 20;
+    
+/*
+ROW_NUMBER(): 출력되는 각 행에 고유한 숫자 값을 부여하는 데이터 분석 함수
+출력되는 결과에 번호를 순서대로 부여해서 출력
+OVER 다음 괄호 안에 반드시 ORDER BY절을 기술해야 한다!
+PSEUDOCOLUMN인 ROWNUM과 유사 / RANK와 DENSE_RANK와 다름
+*/    
+
+SELECT empno, ename, sal, ROW_NUMBER() OVER ()번호
+    FROM emp
+    WHERE deptno = 20; -- ERROR! (윈도우 지정에 ORDER BY 표현식이 없습니다)
+    
+--부서 번호별로 월급에 대한 순위를 출력하는 쿼리
+--PARTITION BY를 사용하여 부서 번호별로 파티션해서 순위를 부여
+SELECT deptno, ename, sal, ROW_NUMBER() OVER(PARTITION BY deptno
+                                        ORDER BY sal DESC) 번호
+        FROM emp
+        WHERE deptno in (10, 20);
