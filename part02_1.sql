@@ -45,7 +45,7 @@ SELECT INSTR('abcdefg@naver.com', '@')
 
 SELECT SUBSTR('abcdefg@naver.com', INSTR('abcdefg@naver.com', '@')+1)
     FROM DUAL;
-ㅠ
+
 --naver만 출력
 SELECT RTRIM(SUBSTR('abcdefg@naver.com', INSTR('abcdefg@naver.com', '@')+1), '.com')
     FROM DUAL; --RTRIM: 오른쪽에 있는 .com을 잘라냄
@@ -240,4 +240,123 @@ SELECT ename, hiredate, LAST_DAY(hiredate)
     FROM emp
     WHERE ename='KING'; --KING 사원 이름, 입사일, 입사한 달의 마지막 날짜
     
+
+--30. 문자형으로 데이터 유형 변환하기(TO_CHAR)
+SELECT ename, TO_CHAR(hiredate, 'DAY') as 요일, TO_CHAR(sal, '999,999') as 월급
+    FROM emp
+    WHERE ename='SCOTT'; --사원 이름, 입사한 요일, 월급에 천단위 구분 컴마
     
+/*
+TO_CHAR함수: 숫자형 데이터 유형 -> 문자형 변환 OR 날짜형 데이터 유형 -> 문자형 변환
+TO_CHAR(hiredate, 'DAY'): 입사일을 요일로 출력
+TO_CHAR(sal, '999,999'): 월급을 출력할 때 천 단위를 표시하여 출력*/
+
+SELECT hiredate, TO_CHAR(hiredate,'RRRR') as 연도, TO_CHAR(hiredate, 'MM') as 달,
+                TO_CHAR(hiredate, 'DD') as 일, TO_CHAR(hiredate, 'DAY') as 요일
+        FROM emp
+        WHERE ename='KING';
+        
+SELECT ename, hiredate
+    FROM emp
+    WHERE TO_CHAR(hiredate, 'RRRR') = '1981';
+    
+--EXTRACT: 날짜 컬럼에서 연도/월/일/시간/분/초 추출
+SELECT ename as 이름, EXTRACT(year from hiredate) as 연도,
+                    EXTRACT(MONTH from hiredate) as 달,
+                    EXTRACT(day from hiredate) as 요일
+    FROM emp;
+    
+SELECT ename as 이름, TO_CHAR(sal, '999,999') as 월급
+    FROM emp;
+    
+SELECT ename as 이름, TO_CHAR(sal*200, '999,999,999') as 월급
+    FROM emp; --천단위와 백만단위를 표시 예제
+    
+--알파뱃 L: 화폐 단위 \(원화) 붙여 출력 가능
+SELECT ename as 이름, TO_CHAR(sal*200, 'L999,999,999') as 월급
+    FROM emp;
+
+
+--31. 날짜형으로 데이터 유형 변환하기(TO_DATE)
+SELECT ename, hiredate 
+    FROM emp
+    WHERE hiredate = TO_DATE('81/11/17', 'RR/MM/DD');
+    
+--현재 접속한 세션의 날짜 형식을 확인하는 쿼리
+SELECT *
+    FROM NLS_SESSION_PARAMETERS
+    WHERE parameter='NLS_DATE_FORMAT';
+   
+SELECT ename, hiredate
+    FROM emp
+    WHERE hiredate = '81/11/17';
+    
+--날짜 형식이 DD/MM/RR일 때
+SELECT ename, hiredate
+    FROM emp
+    WHERE hiredate = '17/11/81';
+    
+ALTER SESSION SET NLS_DATE_FORMAT = 'DD/MM/RR';
+
+SELECT eName, hiredate
+        FROM emp
+        WHERE hiredate = '17/11/81';
+        
+SELECT eName, hiredate
+        FROM emp
+        WHERE hiredate = TO_DATE('81/11/17', 'RR/MM/DD');
+
+ALTER SESSION SET NLS_DATE_FORMAT = 'RR/MM/DD';    
+
+
+--32. 암시적 형 변환 이해하기
+SELECT ename, sal  
+    FROM emp
+    WHERE sal = '3000';
+
+CREATE TABLE EMP32
+(ENAME VARCHAR2(10),
+SAL VARCHAR2(10));
+
+INSERT INTO EMP32 VALUES('SCOTT', '3000');
+INSERT INTO EMP32 VALUES('SMITH', '1200');
+COMMIT;
+
+SELECT ename, sal
+    FROM emp32
+    WHERE sal = '3000'; --문자형 = 문자열
+    
+SELECT ename, sal
+    FROM emp32
+    WHERE sal = 3000; --문자형 = 숫자형 (암시적 형변환)
+    
+SELECT ename, sal
+    FROM emp32
+    WHERE TO_NUMBER(SAL) = 3000; --SAL을 TO_NUMBER(SAL)로 변환
+    
+--SET AUTOUT ON: SQL을 실행할 때 출력되는 결과와 SQL을 실행하는 실행 계획을 한번 보여달라는 SQLPLUS 명령어
+--계획: 오라클이 SQL을 실행할 때 어떠한 방법으로 데이터를 검색하겠다는 계획서
+SET AUTOT ON
+
+SELECT ename, sal
+    FROM emp32
+    WHERE SAL = 3000;
+
+
+--33. NULL 값 대신 다른 데이터 출력하기(NVL, NVL2)
+SELECT ename, comm, NVL(comm, 0)
+    FROM emp; --커미션이 NULL인 사원들은 0으로 출력
+    
+SELECT ename, sal, comm, sal+comm
+    FROM emp
+    WHERE job IN('SALESMAN', 'ANALYST');
+    
+SELECT ename, sal, comm, NVL(comm, 0), sal+NVL(comm,0)
+    FROM emp
+    WHERE job IN('SALESMAN', 'ANALYST'); --NULL값 0 처리
+    
+ --NVL2 함수 이용
+ SELECT ename, sal, comm, NVL2(comm, sal+comm, sal)
+    FROM emp
+    WHERE job IN ('SALESMAN', 'ANALYST'); --NULL(X): sal+comm / NULL(O): sal 출력
+   
