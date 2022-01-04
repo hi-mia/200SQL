@@ -336,7 +336,7 @@ commit;
 --UNION ALL
 SELECT COL1 FROM A
     UNION ALL
-    SELECT COL1 FROM B;
+SELECT COL1 FROM B;
 
 
 --68. 집합 연산자로 데이터를 위아래로 연결하기 2 (UNION) 
@@ -377,4 +377,81 @@ COMMIT;
 
 SELECT COL1 FROM C
     UNION
-    SELECT COL1 FROM D; --중복 데이터 제거 + 결과 내림차순 정렬
+SELECT COL1 FROM D; --중복 데이터 제거 + 결과 내림차순 정렬
+
+
+--69. 집합 연산자로 데이터의 교집합을 출력하기 (INTERSECT)
+SELECT ename, sal, job, deptno
+    FROM emp
+    WHERE deptno in (10,20)
+INTERSECT
+SELECT ename, sal, job, deptno
+    FROM emp
+    WHERE deptno in (20, 30);
+--부서 번호 10번, 20번인 사원들을 출력하는 쿼리와 부서 번호 20번, 30번을 출력하는 쿼리의 교집합(20번)
+--INTERSECT도 중복 데이터 제거 + 내림차순 정렬
+
+--테이블 생성
+DROP TABLE  E;
+DROP TABLE  F;
+
+CREATE TABLE E (COL1 NUMBER(10) );
+INSERT INTO E VALUES(1);
+INSERT INTO E VALUES(2);
+INSERT INTO E VALUES(3);
+INSERT INTO E VALUES(4);
+INSERT INTO E VALUES(5);
+COMMIT;
+
+CREATE TABLE F (COL1 NUMBER(10) );
+INSERT INTO F VALUES(3);
+INSERT INTO F VALUES(4);
+INSERT INTO F VALUES(5);
+INSERT INTO F VALUES(6);
+INSERT INTO F VALUES(7);
+COMMIT;
+
+SELECT COL1 FROM E
+    INTERSECT
+SELECT COL1 FROM F; --중복된 데이터 제거 + 결과 내림차순 정렬
+
+
+--70. 집합 연산자로 데이터의 차이를 출력하기(MINUS)
+SELECT ename, sal, job, deptno
+    FROM emp
+    WHERE deptno in (10,20)
+MINUS
+SELECT ename, sal, job, deptno
+    FROM emp
+    WHERE deptno in (20,30);
+--부서 번호 10번, 20번을 출력하는 쿼리의 결과에서 부서번호 20번, 30번을 출력하는 쿼리의 결과 차이 출력
+--MINUS 연산자 위쪽 쿼리의 결과 데이터에서 MINUS 아래쪽 쿼리의 결과 데이터 차이를 출력하는 쿼리
+
+--테이블 생성
+DROP  TABLE  G;
+DROP  TABLE  H;
+
+CREATE TABLE G (COL1 NUMBER(10) );
+INSERT INTO G VALUES(1);
+INSERT INTO G VALUES(2);
+INSERT INTO G VALUES(3);
+INSERT INTO G VALUES(4);
+INSERT INTO G VALUES(5);
+COMMIT;
+
+CREATE TABLE H (COL1 NUMBER(10) );
+INSERT INTO H VALUES(3);
+INSERT INTO H VALUES(4);
+INSERT INTO H VALUES(5);
+INSERT INTO H VALUES(6);
+INSERT INTO H VALUES(7);
+COMMIT;
+
+SELECT COL1 FROM G
+    MINUS
+SELECT COL1 FROM H; --결과 내림차순 정렬 출력
+
+/*
+합집합의 결과를 출력할 경우 굳이 데이터를 정렬할 필요가 없고,
+중복을 제거해서 출력할 필요가 없다면 UNION ALL을 사용
+*/
