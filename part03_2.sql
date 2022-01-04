@@ -333,3 +333,157 @@ UPDATE EMP e
 
 
 --83. 락(LOCK) 이해하기: 같은 데이터를 동시에 갱신하는 것을 막음
+--SCOTT으로 접속한 터미널 창1
+UPDATE emp
+SET sal = 3000
+WHERE ename='JONES';
+
+COMMIT;
+
+--SCOTT으로 접속한 터미널 창2
+UPDATE emp
+SET sal = 9000
+WHERE ename = 'JONES';
+
+/*
+UPDATE문을 수행하면 UPDATE 대상이 되는 행(ROW)을 잠궈버림
+UPDATE할 때 락(LOCK)을 거는 이유: 데이터의 일관성을 보장하기 위함
+
+UPDATE는 행 전체를 잠그기 때문에 JONES 월급뿐만 아니라 다른 컬럼들의 데이터도 변경할 수 없고 WAITING하게 됨
+
+터미널 창1에서 COMMIT을 수행하게 되면 JONES의 월급은 3000으로 저장되고 행에 걸렸던 잠금은 해제됨
+터미널 창 1에서 행에 걸린 잠금을 해제하였기 때문에 터미널 창 2는 JONES의 월급을 9000으로 수정할 수 있게 됨
+
+락이 걸리지 않았다면 순서 2에서 JONES의 월급이 9000으로 변경되었을 것이고 JONES의 월급을
+3000으로 변경한 터미널창 1에서는 그 사실을 모르고 있을 것 -> 일관성 깨짐
+
+터미널 창 1은 자기가 변경한 데이터를 커밋하기 전까지 일관되게 유지해야 함, 락이 없으면 일관성 깨짐
+커밋하기 전까지는 자기가 변경한 데이터에 대해 일관성이 보장되어야 함
+-> LOCK을 사용하여 UPDATE문을 수행하면 해당 행에 LOCK을 검
+*/
+
+
+--84. SELECT FOR UPDATE절 이해하기: 검색하는 행에 락(LOCK)을 거는 SQL문
+--JONES의 이름과 월급과 부서 번호를 조회하는 동안 다른 세션에서 JONES의 데이터를 갱신하지 못하도록 함
+
+--SCOTT으로 접속한 터미널창1
+SELECT ename, sal, deptno
+    FROM emp
+    WHERE ename='JONES'
+    FOR UPDATE;
+
+COMMIT;
+
+--SCOTT으로 접속한 터미널창2
+UPDATE emp
+    SET sal = 9000
+    WHERE ename='JONES';
+
+/*
+1) 
+터미널창 1에서 SELECT FOR UPDATE문으로 JONES의 데이터를 검색함. JONES의 행에 자동으로 락(LOCK) 걸림
+
+2) 터미널창 2에서 JONES의 월급을 9000으로 변경하면 변경이 안 되고 WAITING하게 됨
+
+3) 터미널창 1에서 COMMIT을 수행하면 LOCK이 해제되면서 터미널창 2의 UPDATE문이 수행됨
+*/    
+
+
+--85. 서브 쿼리를 사용하여 데이터 입력하기
+--EMP 테이블의 구조를 그대로 복제한 EMP2 테이블에 부서 번호가 10번인 사원들의 정보 입력
+
+CREATE TABLE emp2
+    as
+        SELECT *
+            FROM emp
+            WHERE 1=2; --EMP 테이블의 구조만 가져와 EMP2 테이블 생성(구조만 가져옴 -> 데이터X)
+
+INSERT INTO emp2(empno, ename, sal, deptno)
+  SELECT empno, ename, sal, deptno
+    FROM emp
+    WHERE deptno = 10;
+    
+/*
+VALUES절에 VALUE 대신 입력하고자 하는 서브 쿼리문을 기술
+서브 쿼리문의 컬럼 순서는 INSERT절 괄호 안의 컬럼 순서대로 작성
+
+기본 INSERT문은 한 번에 하나의 행만 입력됨
+서브 쿼리를 사용하여 INSERT를 수행하면 여러 개의 행을 한 번에 테이블에 입력 가능
+*/    
+
+
+--86. 서브 쿼리를 사용하여 데이터 수정하기
+--직업이 SALESMAN인 사원들의 월급을 ALLEN의 월급으로 변경(SET에 서브쿼리)
+UPDATE emp
+  SET sal = (SELECT sal
+                FROM emp
+                WHERE ename='ALLEN')
+WHERE job='SALESMAN';
+
+--UPDATE문은 모든 절에서 서브 쿼리 사용 가능(UPDATE, SET, WHERE)
+
+--SET절에 여러 개의 컬럼들을 기술하여 한 번에 갱신 가능
+UPDATE emp
+    SET(sal, comm) = (SELECT sal, comm
+                        FROM emp
+                        WHERE ename='ALLEN')
+    WHERE ename='SCOTT';
+
+
+--87. 서브 쿼리를 사용하여 데이터 삭제하기
+--SCOTT보다 더 많은 월급을 받는 사원들 삭제
+DELETE FROM emp
+WHERE sal > (SELECT sal
+               FROM emp
+               WHERE ename='SCOTT');              
+--서브쿼리X일 때: SCOTT의 월급 출력 -> SCOTT의 월급 3000을 가지고 다시 DELETE문 수행
+
+--월급이 해당 사원이 속한 부서 번호의 평균 월급보다 크면 삭제하는 DELETE 서브쿼리
+DELETE FROM emp m
+WHERE sal > (SELECT avg(sal)
+                FROM emp s
+                WHERE s.deptno = m.deptno);
+
+
+--88. 서브 쿼리를 사용하여 데이터 합치기
+/*
+부서 테이블에 숫자형으로 SUMSAL 컬럼 추가
+사원 테이블을 이용하여 SUMSAL 컬럼의 데이터를 부서 테이블의 부서 번호별 토탈 월급으로 갱신
+*/
+
+ALTER TABLE dept
+    ADD sumsal number(10); --SUMSAL 컬럼 추가
+
+MERGE INTO dept d
+USING (SELECT deptno, sum(sal) sumsal
+        FROM emp
+        GROUP BY deptno) v
+ON (d.deptno = v.deptno)
+WHEN MATCHED THEN
+UPDATE set d.sumsal = v.sumsal;
+--부서 테이블에 새롭게 추가된 SUMSAL 컬럼에 해당 부서 번호의 토탈 월급으로 값을 갱신하는 MERGE문
+
+/*
+1) MERGE INTO dept d USING (SELECT deptno, sum(sal) sumsal FROM emp GROUP BY deptno) v
+USING절에서 서브 쿼리를 사용하여 출력하는 데이터로 DEPT 테이블을 MERGE함
+서브 쿼리에서 반환하는 데이터는 부서 번호와 부서 번호별 토탈 월급
+
+2) ON (d.deptno = v.deptno)
+서브 쿼리에서 반환하는 데이터인 부서 번호와 사원 테이블의 부서 번호로 조인 조건을 줌
+
+3) WHEN MATCHED THEN UPDATE set d.sumsal = v.sumsal;
+서브 쿼리에서 반환하는 부서 번호와 사원 테이블의 부서 번호가 서로 일치하는지 확인하여
+일치하면 해당 부서 번호의 토탈 월급으로 값을 갱신
+
+결과: 서브 쿼리와 MATCH되는 부서 번호 10번, 20번, 30번은 값이 갱신되고 
+40번은 MATCH하지 않으므로 갱신되지 않음
+*/
+
+--MERGE문으로 수행하지 않고 서브 쿼리를 사용한 UPDATE문으로 수행
+UPDATE dept d
+    SET sumsal = (SELECT SUM(SAL)
+                    FROM emp e
+                    WHERE e.deptno = d.deptno);
+
+--89. 계층형 질의문으로 서열을 주고 데이터 출력하기 1
+                    
