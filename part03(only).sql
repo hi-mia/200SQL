@@ -581,4 +581,582 @@ UPDATE dept d
     SET sumsal = (SELECT SUM(SAL)
                     FROM emp e
                     WHERE e.deptno = d.deptno);
-                    
+
+
+--89. 계층형 질의문으로 서열을 주고 데이터 출력하기 1
+SELECT rpad(' ', level*3) || ename as employee, level, sal, job
+    FROM emp
+    START WITH ename = 'KING'
+    CONNECT BY prior empno = mgr;
+
+
+--90. 계층형 질의문으로 서열을 주고 데이터 출력하기 2
+SELECT rpad(' ', level*3) || ename as employee, level, sal, job
+    FROM emp
+    START WITH ename='KING'
+    CONNECT BY prior empno = mgr AND ename != 'BLAKE'; 
+
+
+--91. 계층형 질의문으로 서열을 주고 데이터 출력하기 3
+
+SELECT rpad(' ', level*3) || ename as employee, level, sal, job
+    FROM emp
+    START WITH ename='KING'
+    CONNECT BY prior empno = mgr
+    ORDER SIBLINGS BY sal desc;
+--서열 순서를 유지하면서 월급이 높은 사원부터 출력: SIBLINGS
+
+--SIBLINGS를 사용하지 않았을 때
+SELECT rpad(' ', level*3) || ename as employee, level, sal, job
+    FROM emp
+    START WITH ename='KING'
+    CONNECT BY prior empno = mgr
+    ORDER BY sal desc;
+
+
+--92. 계층형 질의문으로 서열을 주고 데이터 출력하기 4
+SELECT ename, SYS_CONNECT_BY_PATH(ename, '/') as path
+    FROM emp
+    START WITH ename='KING'
+    CONNECT BY prior empno = mgr;
+--계층형 질의문 + SYS_CONNECT_BY 함수 이용 서열 순서 가로로 출력    
+
+--LTRIM 사용하여 맨 처음의 '/' 제거
+SELECT ename, LTRIM(SYS_CONNECT_BY_PATH(ename, '/'), '/') as path
+    FROM emp
+    START WITH ename='KING'
+    CONNECT BY prior empno = mgr;
+
+
+--93. 일반 테이블 생성하기 (CREATE TABLE)
+CREATE TABLE EMP01
+(EMPNO  NUMBER(10),
+ ENAME  VARCHAR2(10),
+ SAL    NUMBER(10,2),
+ HIREDATE   DATE);
+
+
+--94. 임시 테이블 생성하기 (CREATE TEMPORARY TABLE)
+CREATE GLOBAL TEMPORARY TABLE EMP37
+(   EMPNO   NUMBER(10),
+    ENAME   VARCHAR2(10),
+    SAL     NUMBER(10))
+    ON COMMIT DELETE ROWS;
+
+INSERT INTO emp37 VALUES(1111, 'scott', 3000);
+INSERT INTO emp37 VALUES(2222, 'smith', 4000);
+
+SELECT * FROM emp37;
+COMMIT;
+
+SELECT * FROM emp37; --결과X
+
+--ON COMMIT PRESERVE ROWS: 세션(SESSION)을 로그아웃하면 데이터 사라짐
+CREATE GLOBAL TEMPORARY TABLE EMP38
+ (  EMPNO   NUMBER(10),
+    ENAME   VARCHAR2(10),
+    SAL     NUMBER(10))
+    ON COMMIT PRESERVE ROWS;
+    
+INSERT INTO emp38 VALUES(1111, 'scott', 3000);
+INSERT INTO emp38 VALUES(2222, 'smith', 4000);
+
+SELECT * FROM emp38;
+
+COMMIT;
+
+SELECT * FROM emp38;
+
+/*
+exit
+sqlplus scott/tiger
+*/
+
+
+--95. 복잡한 쿼리를 단순하게 하기 1 (VIEW)
+CREATE VIEW EMP_VIEW
+AS
+SELECT empno, ename, sal, job, deptno
+    FROM emp
+    WHERE job = 'SALESMAN';
+    
+--CREATE VIEW 뷰 이름 AS (VIEW를 통해 보여줘야 할 쿼리)
+
+SELECT * FROM emp_view;
+
+--VIEW를 변경 -> 실제 테이블 변경됨
+UPDATE EMP_VIEW SET sal=0 WHERE ename='MARTIN';
+
+SELECT * FROM emp where job = 'SALESMAN';
+
+
+--96. 복잡한 쿼리를 단순하게 하기 2 (VIEW)
+CREATE VIEW EMP_VIEW2
+AS
+SELECT deptno, round(avg(sal)) "평균 월급"
+    FROM emp
+    GROUP BY deptno;
+--뷰 쿼리문에 그룹 함수 사용 / 뷰 생성시 함수나 그룹 함수 작성할 때는 반드시 컬럼 별칭 사용
+
+SELECT * FROM emp_view2;
+
+UPDATE emp_view2
+    SET "평균 월급" = 3000
+    WHERE deptno = 30; -- ERROR!
+    
+SELECT e.ename, e.sal, e.deptno, v.평균월급
+    FROM emp e, (SELECT deptno, round(avg(sal)) 평균월급
+                    FROM emp
+                    GROUP BY deptno) v
+    WHERE e.deptno = v.deptno and e.sal > v.평균월급;
+    
+--복합 뷰를 이용한 단순화
+SELECT e.ename, e.sal, e.deptno, v."평균 월급"
+    FROM emp e, emp_view2 v
+    WHERE e.deptno = v.deptno and e.sal > v."평균 월급";
+
+
+--97. 데이터 검색 속도를 높이기(INDEX)
+CREATE INDEX EMP_SAL
+    ON EMP(SAL);
+    
+/*
+인덱스(INDEX): 테이블에서 데이터를 검색할 때 검색 속도를 높이기 위해 사용하는 데이터 베이스 객체(OBJECT)
+ON절 다음에 인덱스를 생성하고자 하는 테이블과 컬럼명을 '테이블명(컬렴명)'으로 작성
+*/
+
+
+--98. 절대로 중복되지 않는 번호 만들기(SEQUENE)
+--숫자 1번부터 100번까지 출력하는 시퀀스
+CREATE SEQUENCE SEQ1
+START WITH 1 --첫 시작 숫자
+INCREMENT BY 1 --숫자의 증가치
+MAXVALUE 100 --시퀀스에서 출력될 최대 숫자
+NOCYCLE; --최대 숫자까지 숫자가 출력된 이후 다시 처음 1번부터 번호를 생성할지 여부
+
+--시퀀스이름.NEXTVAL: 시퀀스의 다음 번호 출력 또는 확인
+
+--시퀀스 없이 사원 테이블에 중복X번호 넣기: 최대숫자 검색 -> 그보다 높은 값 삽입
+SELECT max(empno)
+    FROM emp;
+    
+INSERT INTO EMP(empno, ename, sal, job, deptno)
+    VALUES(7935, 'JACK', 3400, 'ANALYST', 20);
+
+--시퀀스 사용하여 사원 테이블에 데이터를 입력
+CREATE TABLE emp02
+(EMPNO  NUMBER(10),
+ ENAME  VARCHAR2(10),
+ SAL    NUMBER(10));
+ 
+INSERT INTO emp02 VALUES(SEQ1.NEXTVAL, 'JACK', 3500);
+INSERT INTO emp02 VALUES(SEQ1.NEXTVAL, 'JAMES', 4500);
+
+SELECT * FROM emp02;
+
+
+--99. 실수로 지운 데이터 복구하기 1 (FLASHBACK QUERY)
+SELECT *
+    FROM EMP
+    AS OF TIMESTAMP(SYSTIMESTAMP - INTERVAL '5' MINUTE)
+    WHERE ENAME = 'KING'; --사원 테이블의 5분 전 KING 데이터를 검색
+    
+/*
+AS OF TIMESTAMP: 과거 시점
+SYSTIMESTAMP: 현재 시간
+*/ 
+
+--오늘 현재 시간 확인
+SELECT SYSTIMESTAMP
+    FROM dual;
+    
+--오늘 현재 시간에서 5분 전의 시간 확인
+SELECT SYSTIMESTAMP - INTERVAL '5' MINUTE
+    FROM dual;    
+    
+
+--KING의 데이터를 변경하고 과거 시점의 데이터 확인
+--1) KING의 월급 조회
+SELECT ename, sal
+    FROM emp
+    WHERE ename='KING';
+    
+--2) KING의 월급을 0으로 변경
+UPDATE EMP
+    SET SAL = 0
+    WHERE ENAME='KING';
+    
+--3) COMMIT 수행
+COMMIT;
+
+--4) 5분 전의 KING의 데이터 확인
+SELECT ename, sal
+    FROM emp
+    AS OF TIMESTAMP(SYSTIMESTAMP - INTERVAL '5' MINUTE)
+    WHERE ENAME='KING';
+
+--구체적으로 시간을 적어서 조회도 가능.. 인데 에러남 ㅎㅎㅎㅎㅎ
+SELECT ename, sal
+    FROM emp
+    AS OF TIMESTAMP '21/01/05 11:19:12' --ORA-00932: 일관성 없는 데이터 유형: TIMESTAMP이(가) 필요하지만 CHAR임
+    WHERE ename='KING';
+    
+--테이블을 플래쉬백할 수 있는 타임 확인
+SELECT name, value
+    FROM V$PARAMETER
+    WHERE name='undo_retention'; --value: 900(900초라는 뜻)
+    
+    
+--100. 실수로 지운 데이터 복구하기 2 (FLASHBACK TABLE)
+ALTER TABLE emp ENABLE ROW MOVEMENT; --사원 테이블을 5분 전으로 돌림
+
+SELECT row_movement
+    FROM user_tables
+    WHERE table_name = 'EMP'; --플래쉬백 가능한 상태인지 확인(ENABLED)
+    
+FLASHBACK TABLE emp TO TIMESTAMP(SYSTIMESTAMP - INTERVAL '5' MINUTE);
+
+/*
+사원(EMP) 테이블을 플래쉬백 하려면 먼저 플래쉬백이 가능한 상태로 변경해야 함 (ALTER 명령어)
+
+사원 테이블을 현재시점(SYSTIMESTAMP)에서 5분 전으로 플래쉬백(FLASHBACK) 함
+(작업을 반대로 수행하면서 되돌림)
+플래쉬백 성공 -> 데이터 확인 후 COMMIT
+*/
+
+--EMP 테이블만 특정 시점으로 되돌라가
+FLASHBACK TABLE emp TO TIMESTAMP
+TO_TIMESTAMP('22/06/30 13:03:15', 'RR/MM/DD HH24:MI:SS');
+/*
+TO_TIMESTAMP: 이 함수를 통해 날짜, 시, 분, 초를 지정하면 해당 시간으로 EMP 테이블을 되돌림
+(모든 작업 반대로 수행)*/
+
+
+--101. 실수로 지운 데이터 복구하기 3 (FLASHBACK DROP)
+DROP TABLE emp;
+
+SELECT ORIGINAL_NAME, DROPTIME
+    FROM USER_RECYCLEBIN; -- 테이블 DROP 후 휴지통에 존재하는지 확인
+
+FLASHBACK TABLE emp TO BEFORE DROP; --휴지통에서 복원
+
+--휴지통에서 복구할 대 테이블명을 다른 이름으로 변경
+FLASHBACK TABLE emp TO BEFORE DROP RENAME TO emp2;
+
+
+--102. 실수로 지운 데이터 복구하기 4 (FLASHBACK VERSION QUERY)
+--과거 이력 정보 출력
+SELECT ename, sal, versions_starttime, versions_endtime, versions_operation
+    FROM emp
+    VERSIONS BETWEEN TIMESTAMP
+        TO_TIMESTAMP('2022-01-04 13:10:00', 'RRRR-MM-DD HH24:MI:SS')
+        AND MAXVALUE
+    WHERE ename = 'KING'
+    ORDER BY versions_starttime;
+    
+/*
+VERSIONS절: 변경 이력 정보를 보고 싶은 기간을 정함
+TO_TIMESTAMP 변환 함수를 사용하여 시:분:초까지 상세히 시간 설정 가능
+ORDER BY versions_starttime : 이력 정보를 기록하기 시작한 순서대로 정렬해서 출력
+*/    
+
+--현재시간 확인
+SELECT SYSTIMESTAMP FROM dual;
+
+--변경 전 KING 데이터 확인
+SELECT ename, sal, deptno
+    FROM emp
+    WHERE ename='KING';
+    
+--KING의 월급을 8000으로 변경하고 COMMIT
+UPDATE emp
+    SET sal = 8000
+    WHERE ename = 'KING';
+    
+COMMIT;
+
+--KING의 부서번호를 20번으로 변경
+UPDATE emp
+    SET deptno = 20
+    WHERE ename = 'KING';
+
+COMMIT;
+
+--KING의 데이터 변경 이력 정보를 확인
+SELECT ename, sal, deptno, versions_starttime, versions_endtime, versions_operation
+FROM emp
+VERSIONS BETWEEN TIMESTAMP
+        TO_TIMESTAMP('2022/01/05 13:50:44', 'RRRR-MM-DD HH24:MI:SS')
+        AND MAXVALUE
+    WHERE ename = 'KING'
+    ORDER BY versions_starttime;
+
+--변경 이력 확인 후 emp 테이블을 10분 전으로 되돌리고 COMMIT
+FLASHBACK TABLE emp TO TIMESTAMP(SYSTIMESTAMP - INTERVAL '10' MINUTE);
+COMMIT;
+
+
+--103. 실수로 지운 데이터 복구하기 5 (FLASHBACK TRANSACTION QUERY)
+--사원 테이블의 데이터를 5분 전으로 되돌리기 위한 DML문 출력
+SELECT undo_sql
+    FROM flashback_transaction_query
+    WHERE table_owner = 'SCOTT' AND table_name = 'EMP'
+    AND commit_scn between 9457390 AND 9457397
+    ORDER BY start_timestamp desc; --UNDO(취소)할 수 있는 SQL 조회
+    
+/*
+SCN: System Change Number / commit할 때 생성되는 번호
+특정 시간대의 SCN 번호로 범위를 지정
+
+ORDER BY start_timestamp desc: 최근 UNDO(취소) 정보가 먼저 출력되게 정렬
+
+TRANSACTION QUERY의 결과를 보기 위해서는 데이터베이스 모드를 아카이브 모드로 변경
+-> SQL PLUS에서 작업
+*/
+
+/*
+SQL PLUS 작업
+C:\Users\oracl\sqlplus "/as sysdba"
+
+-DB정상 종료
+SHUTDOWN IMMEDIATE;
+
+-데이터 베이스를 마운트 상태로 올림
+STARTUP MOUNT
+
+-아카이브 모드로 데이터 베이스를 변경
+ALTER DATABASE ARCHIVELOG;
+
+-DML문이 redo log file에 저장될 수 있도록 설정
+ALTER DATABASE ADD SUPPLEMENTAL LOG DATA;
+
+-SCOTT 유저로 접속
+connect scott/tiger
+*/
+
+--변경 전 KING의 데이터 확인
+SELECT ename, sal, deptno
+    FROM emp
+    WHERE ename = 'KING';
+    
+UPDATE emp
+    SET sal = 8000
+    WHERE ename = 'KING';
+
+UPDATE emp
+    SET deptno=20
+    WHERE ename='KING';
+
+COMMIT;
+
+--KING의 데이터 변경 이력 정보를 확인
+SELECT versions_startscn, versions_endscn, versions_operation, sal, deptno
+    FROM emp
+    VERSIONS BETWEEN SCN MINVALUE AND MAXVALUE
+    WHERE ename='KING';
+    
+SELECT undo_sql
+    FROM flashback_transaction_query
+    WHERE table_owner = 'SCOTT' AND table_name = 'EMP'
+    AND commit_scn between 9454013 AND 9454017
+    ORDER BY start_timestamp desc;
+    
+--ROWID: 해당 로우의 물리적인 주소
+
+
+--104. 데이터의 품질 높이기 1 (PRIMARY KEY)
+--DEPTNO 컬럼에 PRIMARY KEY 제약을 걸면서 테이블을 생성
+CREATE TABLE DEPT2
+(DEPTNO     NUMBER(10) CONSTRAINT DPET2_DEPNO_PK PRIMARY KEY,
+ DNAME      VARCHAR2(14),
+ LOC        VARCHAR2(10));
+ 
+ /*
+PRIMARY KEY 제약이 걸린 컬럼에는 중복된 데이터와 NULL 값을 입력할 수 없다(고유한 행)
+CONSTRAINT 키워드 + 제약 이름(테이블명_컬럼명_제약종류축약) + 제약의 종류(PRIMARY KEY)
+ */
+ 
+--테이블에 생성된 제약을 확인
+SELECT a.CONSTRAINT_NAME, a.CONSTRAINT_TYPE, b.COLUMN_NAME
+    FROM USER_CONSTRAINTS a, USER_CONS_COLUMNS b
+    WHERE a.TABLE_NAME = 'DEPT2'
+    AND a.CONSTRAINT_NAME = b.CONSTRAINT_NAME;
+    
+--테이블 생성 후 제약을 생성
+CREATE TABLE DEPT2
+(DEPTNO NUMBER(10),
+ DNAME  VARCHAR2(13),
+ LOC    VARCHAR2(10)); --제약 없이 테이블 생성
+ 
+ALTER TABLE DEPT2 --ALTER 명령어로 DPET2 테이블 수정
+    ADD CONSTRAINT DEPT2_DEPTNO_PK PRIMARY KEY(DEPTNO);  --ADD 명령어로 제약 추가
+
+
+--105. 데이터의 품질 높이기 2 (UNIQUE)
+CREATE TABLE DEPT3
+(DEPTNO NUMBER(10),
+ DNAME  VARCHAR2(14) CONSTRAINT DEPT3_DNAME_UN UNIQUE,
+ LOC    VARCHAR2(10)); --테이블 생성 시 제약 생성
+ 
+/*
+UNIQUE 제약: 테이블의 특정 컬럼에 중복된 데이터가 입력되지 않게 제약을 검 / NULL값 입력 가능
+CONSTRAINT + 제약 이름(테이블명_컬럼명_제약 종류) + UNIQUE
+*/
+
+--테이블에 생성된 제약 확인
+SELECT a.CONSTRAINT_NAME, a.CONSTRAINT_TYPE, b.COLUMN_NAME
+    FROM USER_CONSTRAINTS a, USER_CONS_COLUMNS b
+    WHERE a.TABLE_NAME = 'DEPT3'
+    AND a.CONSTRAINT_NAME = b.CONSTRAINT_NAME;
+    
+--테이블 생성 후 제약 생성
+CREATE TABLE DEPT4
+(DEPTNO NUMBER(10),
+ DNAME  VARCHAR2(13),
+ LOC    VARCHAR2(10)); --테이블 생성 시 제약X
+ 
+ALTER TABLE DEPT4
+    ADD CONSTRAINT DEPT4_DNAME_UN UNIQUE(DNAME); --ADD 명령어로 UNIQUE 제약 추가
+
+
+--106. 데이터의 품질 높이기 3 (NOT NULL)
+CREATE TABLE DEPT5
+(DEPTNO NUMBER(10),
+ DNAME  VARCHAR2(14),
+ LOC    VARCHAR2(10) CONSTRAINT DEPT5_LOC_NN NOT NULL);
+ 
+/*
+NOT NULL: 테이블의 특정 컬럼에 NULL 값 입력을 허용하지 않도록 함
+기존 테이블 데이터 중에 NULL 값이 존재하지 않아야만 제약 생성 가능
+*/
+
+--테이블 생성 후 제약 생성
+CREATE TABLE DEPT6
+( DEPTNO  NUMBER(10),
+  DNAME   VARCHAR2(13),
+  LOC   VARCHAR2(10) );
+
+ALTER TABLE DEPT6
+  MODIFY LOC CONSTRAINT DEPT6_LOC_NN NOT NULL;  --NOT NULL 제약은 MODIFY로 생성
+--기존 데이터 중 NULL 값이 포함되어 있다면 ALTER 컬럼에 NOT NULL 제약 생성 불가
+
+
+--107. 데이터의 품질 높이기 4 (CHECK)
+--월급이 0~6000 사이의 데이터만 입력되거나 수정될 수 있도록 제약 + 사원테이블 생성
+CREATE TABLE EMP6
+( EMPNO NUMBER(10),
+  ENAME VARCHAR2(20),
+  SAL   NUMBER(10) CONSTRAINT EMP6_SAL_CK
+  CHECK ( SAL BETWEEN 0 AND 6000)   ); --월급이 0~6000 사이의 데이터만 허용하도록 CHECK 제약 생성
+
+/*
+CHECK 제약: 특정 컬럼에 특정 조건의 데이터만 입력되거나 수정되도록 제한을 거는 제약
+CHECK + (제한하고 싶은 데이터에 대한 조건)
+*/
+
+INSERT  INTO emp6 VALUES (7839, 'KING', 5000);
+INSERT  INTO emp6 VALUES (7698, 'BLAKE', 2850);
+INSERT  INTO emp6 VALUES (7782, 'CLARK', 2450);
+INSERT  INTO emp6 VALUES (7839, 'JONES', 2975);
+COMMIT;
+
+--범위 밖의 수치로 UPDATE/INSERT -> ERROR
+UPDATE emp6
+    SET sal = 9000
+    WHERE ename = 'CLARK'; --ERROR!
+    
+INSERT  INTO emp6 VALUES (7566, 'ADAMS', 9000); --ERROR!
+
+--월급을 6000 이상으로 수정하거나 입력하려면 체크 제약 삭제
+ALTER TABLE emp6
+    DROP CONSTRAINT emp6_sal_ck; --제약 삭제: ALTER TABLE + 삭제하고 싶은 제약 이름 지정
+    
+INSERT  INTO emp6 VALUES (7566, 'ADAMS', 9000); --입력 가능    
+
+
+--108. 데이터의 품질 높이기 5 (FOREIGN KEY)
+--사원 테이블의 부서 번호에 데이터를 입력할 대 부서 테이블에 존재하는 부서 번호만 입력될 수 있도록 제약
+CREATE TABLE DEPT7
+(DEPTNO NUMBER(10) CONSTRAINT DEPT7_DEPTNO_PK PRIMARY KEY,
+ DNAME  VARCHAR2(14),
+ LOC    VARCHAR2(10));
+ 
+CREATE TABLE EMP7
+(EMPNO  NUMBER(10),
+ ENAME  VARCHAR2(20),
+ SAL    NUMBER(10),
+ DEPTNO NUMBER(10)
+ CONSTRAINT EMP7_DEPTNO_FK REFERENCES DEPT7(DEPTNO));
+ 
+ /*
+ FOREIGN KEY: 특정 컬럼에 데이터를 입력할 때 다른 테이블의 데이터를 참조해서 해당하는 데이터만을 허용
+ FOREIGN KEY = 자식키
+ */
+ 
+ALTER TABLE DEPT7
+DROP CONSTRAINT DEPT7_DEPTNO_PK; --ERROR!
+
+--CASCADE 옵션을 붙여야 삭제 가능
+ALTER TABLE DEPT7
+DROP CONSTRAINT DEPT7_DEPTNO_PK cascade; --EMP7 테이블의 FOREIGN KEY 제약도 같이 삭제
+
+
+--109. WITH절 사용하기 1 (WITH ~ AS)
+WITH JOB_SUMSAL AS (SELECT JOB, SUM(SAL) as 토탈
+                            FROM EMP
+                            GROUP BY JOB)
+SELECT JOB, 토탈
+    FROM JOB_SUMSAL
+    WHERE 토탈 > (SELECT AVG(토탈)
+                        FROM JOB_SUMSAL);
+--WITH절을 이용하여 직업과 직업별 토탈 월급을 출력 + 직업별 토탈 월급들의 평균값보다 더 큰값만 출력                        
+--직업과 직업별 토탈 월급을 출력하는 SQL이 두번 반복되는 것을 WITH절로 수행
+
+/*
+WITH절: 검색 시간이 오래 걸리는 SQL이 하나의 SQL 내에서 반복되어 사용될 때 성능을 높이기 위해 사용
+WITH절에서 사용한 TEMP 테이블은 WITH절 내에서만 사용 가능
+
+WITH절의 수행 원리
+필요 데이터를 임시 저장 영역(Temporary Tablespace)에 테이블명을 임의의 이름으로 명명지어 저장,
+필요할때마다 꺼내 씀
+*/
+                        
+                        
+--위의 WITH절을 서브 쿼리문으로 수행
+SELECT JOB, SUM(SAL) as 토탈
+    FROM EMP
+    GROUP BY JOB
+    HAVING SUM(SAL) > (SELECT AVG(SUM(SAL))
+                            FROM EMP
+                            GROUP BY JOB);
+
+
+--110. WITH절 사용하기 2 (SUBQUERY FACTORING)
+--직업별 토탈 값의 평균값에 3000을 더한 값보다 더 큰 부서 번호별 토탈 월급들을 출력
+WITH JOB_SUMSAL AS (SELECT JOB, SUM(SAL) 토탈
+                            FROM EMP
+                            GROUP BY JOB) ,
+    DEPTNO_SUMSAL AS (SELECT DEPTNO, SUM(SAL) 토탈
+                            FROM EMP
+                            GROUP BY DEPTNO
+                            HAVING SUM(SAL) > (SELECT AVG(토탈) + 3000
+                                                FROM JOB_SUMSAL)
+                    )
+    SELECT DEPTNO, 토탈
+        FROM DEPTNO_SUMSAL;
+
+--SUBQUERY FACTORING: WITH절의 쿼리의 결과를 임시 테이블로 생성하는 것
+--이 방법은 FROM절의 서브 쿼리로는 불가능
+
+SELECT DEPTNO, SUM(SAL)
+FROM (SELECT JOB, SUM(SAL) 토탈
+                    FROM EMP
+                    GROUP BY JOB) as JOB_SUMSAL,
+        (SELECT DEPTNO, SUM(SAL) 토탈
+                    FROM EMP
+                    GROUP BY DEPTNO
+                    HAVING SUM(SAL) > (SELECT AVG(토탈) + 3000
+                                            FROM JOB_SUMSAL)
+                            ) DEPTNO_SUMSAL; -- ERROR!
+
+

@@ -486,4 +486,78 @@ UPDATE dept d
                     WHERE e.deptno = d.deptno);
 
 --89. 계층형 질의문으로 서열을 주고 데이터 출력하기 1
-                    
+--계층형 질의문 이용, 사원 이름/월급/ 직업 + 사원들 간의 서열(LEVEL) 출력
+SELECT rpad(' ', level*3) || ename as employee, level, sal, job
+    FROM emp
+    START WITH ename = 'KING'
+    CONNECT BY prior empno = mgr;
+
+/*
+계층형 질의문에서 쓰이는 용어
+노드(node): 표시된 항목
+레벨(level): 트리(tree) 구조에서 각각의 계층
+루트(root): 트리(tree) 구조에서 최상위에 있는 노드
+부모(parent): 트리(tree) 구조에서 상위에 있는 노드
+자식(child): 트리(tree) 구조에서 하위에 있는 노드
+
+계층형 질의문의 키워드: CONNECT BY, START WITH -> PSEUDO COLUMN인 LEVEL 출력 가능
+LEVEL: 계층
+KING: 트리 구조이 최상위에 있는 노드(계층 1레벨)
+
+START WITH: 루트 노드의 데이터를 지정 / 루트 노드: 최상위 노드(사장 KING)
+CONNECT BY: 부모 노드와 자식 노드들 간의 관계를 지정하는 절
+PRIOR을 가운데로 두고 왼쪽에 부모 노드가 되는 컬럼을 적고 오른족에 자식 노드가 되는 컬럼을 기술
+*/
+
+
+--90. 계층형 질의문으로 서열을 주고 데이터 출력하기 2
+SELECT rpad(' ', level*3) || ename as employee, level, sal, job
+    FROM emp
+    START WITH ename='KING'
+    CONNECT BY prior empno = mgr AND ename != 'BLAKE'; 
+
+--예제 89에서 BLAKE와 BLAKE의 직속 부하들은 출력되지 않도록
+
+/*
+-BLAKE만 제외: WHERE절에 ENAME != 'BLAKE'
+-BLAKE + BLAKE 팀원 제외: CONNECT BY절에 ENAME != 'BLAKE'
+부모-자식 노드 관계 맺을 때 BLAKE를 제외하면 BLAKE의 사원 번호를 MGR 번호로 하고 있는 사원들 모두 출력X
+*/
+
+
+--91. 계층형 질의문으로 서열을 주고 데이터 출력하기 3
+--서열 순서를 유지하면서 월급이 높은 사원부터 출력: SIBLINGS
+SELECT rpad(' ', level*3) || ename as employee, level, sal, job
+    FROM emp
+    START WITH ename='KING'
+    CONNECT BY prior empno = mgr
+    ORDER SIBLINGS BY sal desc;
+
+--ORDER BY 사이에 SIBLINGS를 사용하여 정렬하면 계층형 질의문의 서열 순서를 깨트리지 않으면서 출력
+--SIBLINGS(X): 월급이 높은 순서대로만 출력, 서열 순서 섞여 출력
+
+--SIBLINGS를 사용하지 않았을 때
+SELECT rpad(' ', level*3) || ename as employee, level, sal, job
+    FROM emp
+    START WITH ename='KING'
+    CONNECT BY prior empno = mgr
+    ORDER BY sal desc;
+
+
+--92. 계층형 질의문으로 서열을 주고 데이터 출력하기 4
+SELECT ename, SYS_CONNECT_BY_PATH(ename, '/') as path
+    FROM emp
+    START WITH ename='KING'
+    CONNECT BY prior empno = mgr;
+--계층형 질의문 + SYS_CONNECT_BY 함수 이용 서열 순서 가로로 출력    
+
+/*
+SYS_CONNECT_BY_PATH 함수에 두 번째 인자값으로 '/'를 사용해서 이름과 이름 사이의 연결을 '/'로 출력
+콤마(,)를 사용하면 이름과 이름 사이가 콤마로 구분되어 출력
+*/    
+
+--LTRIM 사용하여 맨 처음의 '/' 제거
+SELECT ename, LTRIM(SYS_CONNECT_BY_PATH(ename, '/'), '/') as path
+    FROM emp
+    START WITH ename='KING'
+    CONNECT BY prior empno = mgr;
