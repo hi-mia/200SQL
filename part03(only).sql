@@ -1,5 +1,4 @@
 --56. 출력되는 행 제한하기 (ROWNUM)
-
 SELECT ROWNUM, empno, ename, job, sal  
     FROM emp
     WHERE ROWNUM <= 5; 
@@ -1160,3 +1159,68 @@ FROM (SELECT JOB, SUM(SAL) 토탈
                             ) DEPTNO_SUMSAL; -- ERROR!
 
 
+-- 알고리즘 문제 --------------------------------------------------
+
+--111. SQL로 알고리즘 문제 풀기 1 (구구단 2단 출력)
+
+WITH LOOP_TABLE as (SELECT LEVEL as NUM
+                        FROM DUAL
+                        CONNECT BY LEVEL <= 9)
+    SELECT '2' || 'x' || NUM || '=' || 2 * NUM AS "2단"
+        FROM LOOP_TABLE;
+
+
+--WITH절의 TEMP 테이블인 계층형 질의문만 따로 실행한 결과
+SELECT LEVEL as NUM
+    FROM DUAL
+    CONNECT BY LEVEL <= 9;
+
+
+--112. SQL로 알고리즘 문제 풀기 2 (구구단 1단 ~ 9단 출력)
+WITH LOOP_TABLE AS (SELECT LEVEL AS NUM
+                                FROM DUAL
+                                CONNECT BY LEVEL <= 9),
+      GUGU_TABLE AS (SELECT LEVEL + 1 AS GUGU
+                                FROM DUAL
+                                CONNECT BY LEVEL <= 8)
+    SELECT TO_CHAR(A.NUM) || 'X' || TO_CHAR(B.GUGU) || ' = ' ||
+            TO_CHAR(B.GUGU * A.NUM) as 구구단
+    FROM LOOP_TABLE A, GUGU_TABLE B;
+
+--1단만 출력
+SELECT LEVEL as NUM
+    FROM DUAL
+    CONNECT BY LEVEL <= 9; --1~9
+    
+SELECT LEVEL+1 as NUM
+    FROM DUAL
+    CONNECT BY LEVEL <=8; --2~9
+
+
+--113. SQL로 알고리즘 문제 풀기 3 (직각삼각형 출력)
+WITH LOOP_TABLE as (SELECT LEVEL as NUM
+                    FROM DUAL
+                    CONNECT BY LEVEL <=8)
+SELECT LPAD('★', num, '★') as STAR
+    FROM LOOP_TABLE;
+
+SELECT LPAD('★', 10, '★') as STAR
+    FROM DUAL;
+
+
+--114. SQL로 알고리즘 문제 풀기 4 (삼각형 출력)
+WITH LOOP_TABLE as ( SELECT LEVEL   as NUM
+                                 FROM DUAL
+                                 CONNECT BY LEVEL <= 8 )
+  SELECT LPAD(' ',  10-num, ' ')  ||  LPAD('★',  num, '★') as "Triangle"
+    FROM LOOP_TABLE ;
+
+--치환변수(&)을 이용하면 입력받은 숫자만큼 삼각형 출력 가능
+undefine 숫자1
+undefine 숫자2
+
+WITH LOOP_TABLE as ( SELECT LEVEL   as NUM
+                            FROM DUAL
+                            CONNECT BY LEVEL <= &숫자1)
+    SELECT LPAD(' ', &숫자2-num, ' ') || LPAD('★', num, '★') as "Triangle"
+        FROM LOOP_TABLE;
