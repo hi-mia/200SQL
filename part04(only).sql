@@ -5,45 +5,18 @@ CREATE TABLE CANCER
  환자수    NUMBER(10),
  성별     VARCHAR2(20),
  조유병률   NUMBER(10, 2),
- 생존률    NUMBER(10, 2)); --csv 파일을 저장할 테이블 생성
- 
-SELECT * FROM CANCER;
-
-/*
-IMPORT
-일치 기준: '위치'
-*/
+ 생존률    NUMBER(10, 2)); 
 
 
 --127. 스티브 잡스 연설문에서 가장 많이 나오는 단어는 무엇인가?
 CREATE TABLE SPEECH
 (  SPEECH_TEXT  VARCHAR2(1000)  );
 
-/*
-IMPORT할 때
-구분자는 아무것도 없는 상태 / 왼쪽 둘러싸기 '없음' 선택
-일치 기준: '이름'
-*/
-
 SELECT count(*) FROM speech;
 
 SELECT REGEXP_SUBSTR('I never graduated from college', '[^ ]+', 1, 2) word
     FROM dual;
     
-/*
-REGEXP_SUBSTR 함수로 문장을 어절 단위로 나눔
-REGEXP_SUBSTR: 정규표현식 함수 / 좀더 정교하게 문자열에서 원하는 단어나 철자 추출 가능
-
-이 예제에선 문자열에서 공백이 아닌 문자를 검색
-'[^ ]+' : 공백이 아니면서 철자가 여러 개가 있는 것 / 1 : 첫 번째 어절부터 / 2: 2번째 어절
--> 첫 번째부터 읽어 두 번째로 만나는 어절 출력
-
--연설문에서 가장 많이 나오는 단어 알아내기 -> 먼저 문자열을 어절로 잘라내기
-연설문: 143개의 줄, 가장 긴 문장의 어절 개수는 52개
--> speech 테이블과 숫자 1부터 52까지 출력하는 숫자 집합과 조인 조건 없이 전부 조인하면 
-143개 문장 모두 어절 단위로 출력
-*/
-
 SELECT REGEXP_SUBSTR(lower(speech_text), '[^ ]+', 1, a) word
     FROM speech, (  SELECT level a
                         FROM dual
@@ -65,15 +38,7 @@ SELECT word, count(*)
 CREATE TABLE POSITIVE ( P_TEXT VARCHAR2(2000) ); --긍정 단어 저장
 CREATE TABLE NEGATIVE ( N_TEXT VARCHAR2(2000) ); --부정 단어 저장
 
---import시 구분자: 탭
-
---SQL 작성을 심플하게 하기 위해 127번 예제 쿼리 결과를 VIEW로 생성
-SELECT REGEXP_SUBSTR(lower(speech_text), '[^ ]+', 1, a) word
-    FROM speech, (  SELECT level a
-                        FROM dual
-                        CONNECT BY level <= 52);
-
---위 예제를 VIEW로 생성
+--VIEW 생성
 CREATE VIEW SPEECH_VIEW
 AS
 SELECT REGEXP_SUBSTR(lower(speech_text), '[^ ]+', 1, a) word
@@ -81,13 +46,13 @@ SELECT REGEXP_SUBSTR(lower(speech_text), '[^ ]+', 1, a) word
                         FROM dual
                         CONNECT BY level <= 52);
 
---연설문에서 긍정 단어의 건수가 어떻게 되는지 조회(긍정 단어를 서브 쿼리로 비교)
+--연설문에서 긍정 단어의 건수가 어떻게 되는지 조회
 SELECT count(word) as 긍정단어
     FROM speech_view
     WHERE lower(word) IN ( SELECT lower(p_text)
                              FROM positive );
                             
---부정 단어 조회(부정 단어를 서브 쿼리로 비교)
+--부정 단어 조회
 SELECT count(word) as 부정단어
     FROM speech_view
         WHERE lower(word) IN ( SELECT lower(n_text)
@@ -106,12 +71,6 @@ CREATE TABLE CRIME_DAY
   SAT_CNT       NUMBER(10),
   UNKNOWN_CNT   NUMBER(10));
 
---import 시 한글이 깨진다면 인코딩 타입: UTF8
-
-/*
-특정 범죄가 많이 발생한 요일을 출력하기 용이하도록 unpivot문을 이용하여 
-요일 컬럼을 로우로 검색한 데이터를 crime_day_unpivot 테이블로 생성
-*/
 CREATE TABLE CRIME_DAY_UNPIVOT
  AS
  SELECT *
@@ -126,10 +85,6 @@ SELECT *
                 WHERE TRIM(CRIME_TYPE) = '절도'
         )
     WHERE   RNK = 1;
-/*
-crime_type이 절도 범죄로만 행을 제한하고 rank 함수를 이용하여 건수가 가장 많은 순으로 순위를 부여함,
-그리고 그 중 순위 1위만 출력
-*/
 
 
 --130. 우리나라에서 대학 등록금이 가장 높은 학교는 어디인가?
@@ -149,8 +104,6 @@ SELECT *
             FROM UNIVERSITY_FEE
         )
     WHERE 순위 = 1;
---UNIVERSITY_FEE 테이블에서 등록금(TUITION_FEE)이 가장 높은 학교 순으로 순위를 부여하여 출력,
---FROM절의 서브 쿼리 결과 중 순위가 1위인 것만 출력
 
 
 --131. 서울시 물가 중 가장 비싼 품목과 가격은 무엇인가?
@@ -173,9 +126,6 @@ SELECT A_NAME as "상품", A_PRICE as "가격", M_NAME as "매장명"
 FROM PRICE
 WHERE A_PRICE = (SELECT MAX(A_PRICE)
                     FROM PRICE);
-                    
---서브 쿼리문을 사용하여 price 테이블에서 최대가격 출력 후 
---메인 쿼리에서 그 가격에 해당하는 품목 이름과 가격 출력
 
 
 --132. 살인이 가장 많이 발생하는 장소는 어디인가?
@@ -191,8 +141,6 @@ FROM (
         WHERE crime_type='살인'
     )
 WHERE  rnk = 1;
---FROM절의 서브 쿼리인 인라인 뷰를 이용해서 범죄 유형이 살인인 장소와 그 순위를 출력하게 함
---그리고 메인 쿼리에서 순위가 1위인 장소를 출력
 
 
 --133. 가정불화로 생기는 가장 큰 범죄 유형은 무엇인가?
@@ -213,8 +161,7 @@ create table crime_cause
   부주의      number(10),
   기타       number(10)  );
 
---범죄 동기가 출력되기 용이하도록 unpivot문을 이용하여 범죄 동기 컬럼을 로우로 검색한 데이터를 
---CRIME_CAUSE2 테이블로 생성
+--CRIME_CAUSE2 테이블 생성
 CREATE TABLE CRIME_CAUSE2
 AS
 SELECT *
@@ -222,8 +169,6 @@ SELECT *
     UNPIVOT (CNT FOR TERM IN (생계형, 유흥, 도박, 허영심, 복수, 해고, 징벌,
                               가정불화, 호기심, 유혹, 사고, 불만, 부주의, 기타));
 
---서브쿼리로 가정불화로 인한 범죄 원인의 건수 중에 가장 큰 건수 출력
---그리고 그 건수와 가트면서 원인이 가정 불화인 범죄 유형을 메인 쿼리에서 조회
 SELECT 범죄유형
     FROM CRIME_CAUSE2
     WHERE CNT = (SELECT MAX(CNT)
@@ -239,11 +184,6 @@ SELECT TERM AS 원인
                     FROM CRIME_CAUSE2
                     WHERE 범죄유형 = '방화')
     AND 범죄유형 = '방화';
-/*
-서브 쿼리에서 범죄 유형이 방화인 최대 건수를 출력
-그리고 메인 쿼리에서 그 건수에 해당하는 원인을 조회하는데 최대 건수에 다른 범죄 유형이 중복될 수 있으므로
-AND 다음에 범죄유형 = '방화' 조건을 추가하여 검색
-*/
 
 
 --135. 전국에서 교통사고가 제일 많이 발생하는 지역은 어디인가?
@@ -272,9 +212,6 @@ SELECT *
             WHERE ACC_YEAR=2017
             )
     WHERE 순위 <= 5;
-    
---FROM절의 서브 쿼리에서 교통 사고 건수가 많은 순으로 순위를 부여하여 결과를 출력함
---그리고 메인 쿼리에서 서브 쿼리의 결과 중 순위 5위까지만 제한을 걸어 출력
 
 
 --136. 치킨집 폐업이 가장 많았던 연도가 언제인가?
@@ -293,9 +230,6 @@ SELECT 년도 "치킨집 폐업 연도", 치킨집 "건수"
                 rank() over(order by 치킨집 desc) 순위
           FROM closing)
     WHERE 순위 = 1;
-    
---FROM 절의 서브 쿼리문에서 치킨집 폐업 건수가 높은 순으로 순위를 출력
---그리고 메인 쿼리문의 WHERE 절에서 순위가 1위의 데이터만 출력함
 
 
 --137. 세계에서 근무 시간이 가장 긴 나라는 어디인가?
