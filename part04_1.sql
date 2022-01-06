@@ -306,3 +306,52 @@ CREATE  TABLE  WORKING_TIME
   Y_2016       NUMBER(10),
   Y_2017       NUMBER(10),
   Y_2018       NUMBER(10) );
+
+  /* 연도로 데이터 검색을 용이하게 하기 위해 unpivot문을 이용하여 연도 컬럼을 로우로 생성한
+쿼리의 결과를 view로 생성 */  
+CREATE VIEW C_WORKING_TIME
+AS
+SELECT *
+    FROM WORKING_TIME
+    UNPIVOT (CNT FOR Y_YEAR IN (Y_2014, Y_2015, Y_2016, Y_2017, Y_2018));
+    
+SELECT COUNTRY, CNT, RANK() OVER (ORDER BY CNT DESC) 순위
+    FROM C_WORKING_TIME
+    WHERE Y_YEAR = 'Y_2018';
+
+--RANK 함수를 이용하여 연간 근로 시간이 가장 높은 순으로 순위를 부여하여 나라명과 같이 출력함
+
+
+--138. 남자와 여자가 각각 많이 걸리는 암은 무엇인가?
+SELECT DISTINCT(암종), 성별, 환자수
+    FROM CANCER
+    WHERE 환자수 = (SELECT MAX(환자수)
+                    FROM CANCER
+                    WHERE 성별 = '남자' AND 암종 != '모든암')
+UNION ALL
+SELECT DISTINCT(암종), 성별, 환자수
+    FROM CANCER
+    WHERE 환자수 = (SELECT MAX(환자수)
+                    FROM CANCER
+                    WHERE 성별 = '여자');
+
+/*
+1) 성별이 남자인 데이터에서 환자수가 가장 많은 암이 무엇인지 조회
+2) UNION ALL 집합 연산자를 사용하여 위아래 쿼리의 결과를 같이 출력되게 함
+3) 서브쿼리에서 넘겨 받은 환자수에 대한 조건에 만족하는 암종과 성별과 환자수를 출력함
+4) 성별이 여자인 환자수의 최대값을 출력하여 메인 쿼리문에 전달
+*/                    
+
+
+--139. PL/SQL 변수 이해하기 1
+set serveroutput on
+accept p_num1 prompt    '첫 번재 숫자를 입력하세요 ~ '
+accept p_num2 prompt    '두 번째 숫자를 입력하세요 ~ '
+
+declare
+        v_sum   number(10);
+begin
+        v_sum  :=  &p_num1 + &p_num2;
+        
+        dbms_output.put_line('총합은: ' || v_sum);
+end;
