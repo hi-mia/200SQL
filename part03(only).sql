@@ -1224,3 +1224,143 @@ WITH LOOP_TABLE as ( SELECT LEVEL   as NUM
                             CONNECT BY LEVEL <= &숫자1)
     SELECT LPAD(' ', &숫자2-num, ' ') || LPAD('★', num, '★') as "Triangle"
         FROM LOOP_TABLE;
+
+
+--115. SQL로 알고리즘 문제 풀기 5 (마름모 출력)
+undefine p_num
+ACCEPT p_num prompt '숫자 입력 : '
+
+SELECT LPAD(' ', &p_num-level, ' ') || RPAD('★', level, '★') as star
+            FROM dual
+            CONNECT by level <&p_num+1
+UNION ALL
+SELECT LPAD(' ', level, ' ') || RPAD('★', (&p_num)-level, '★') as star
+            FROM dual
+            CONNECT BY level < &p_num;
+            
+
+--116. SQL로 알고리즘 문제 풀기 6 (사각형 출력)
+undefine p_n1
+undefine p_n2
+ACCEPT p_n1 prompt '가로 숫자를 입력하세요~';
+ACCEPT p_n2 prompt '세로 숫자를 입력하세요~';
+
+WITH LOOP_TABLE as (SELECT LEVEL as NUM
+                                FROM DUAL
+                                CONNECT BY LEVEL <= &p_n2)
+SELECT LPAD('★', &p_n1, '★') as STAR
+    FROM LOOP_TABLE;
+
+
+--117. SQL로 알고리즘 문제 풀기 7 (1부터 10까지 숫자의 합)
+undefine p_n
+ACCEPT p_n prompt '숫자에 대한 값 입력:~';
+
+SELECT SUM(LEVEL) as 합계
+    FROM DUAL
+    CONNECT BY LEVEL <= &p_n;
+
+
+--118. SQL로 알고리즘 문제 풀기 8 (1부터 10까지 숫자의 곱)
+undefine p_n
+ACCEPT p_n prompt '숫자에 대한 값 입력:~';
+
+SELECT ROUND(EXP(SUM(LN(LEVEL)))) 곱
+    FROM DUAL
+    CONNECT BY LEVEL <= &p_n;
+
+
+--119. SQL로 알고리즘 문제 풀기 9 (1부터 10까지 짝수만 출력)
+undefine p_n
+ACCEPT p_n prompt '숫자에 대한 값 입력:';
+
+SELECT LISTAGG(LEVEL, ', ') as 짝수 
+    FROM DUAL
+    WHERE MOD(LEVEL, 2) = 0
+    CONNECT BY LEVEL <= &p_n;
+
+
+ --120. SQL로 알고리즘 문제 풀기 10 (1부터 10까지 소수만 출력)
+undefine p_n
+ACCEPT p_n prompt '숫자에 대한 값 입력:';
+
+WITH LOOP_TABLE as (SELECT LEVEL AS NUM
+                        FROM DUAL
+                        CONNECT BY LEVEL <= &p_n)
+                        
+SELECT L1.NUM as 소수
+    FROM LOOP_TABLE L1, LOOP_TABLE L2
+    WHERE MOD(L1.NUM, L2.NUM) = 0
+    GROUP BY L1.NUM
+    HAVING COUNT(L1.NUM) = 2;
+
+WITH LOOP_TABLE as ( SELECT LEVEL AS NUM
+                        FROM DUAL
+                        CONNECT BY LEVEL <= 10)
+SELECT L1.NUM, COUNT(L1.NUM)
+    FROM LOOP_TABLE L1, LOOP_TABLE L2
+    WHERE MOD(L1.NUM, L2.NUM) = 0
+    GROUP BY L1.NUM;
+
+
+--121. SQL로 알고리즘 문제 풀기 11 (최대 공약수)
+ACCEPT p_n1 prompt ' 첫 번재 숫자를 입력하세요.';
+ACCEPT p_n2 prompt ' 두 번째 숫자를 입력하세요.';
+
+WITH NUM_D AS (SELECT &p_n1 as NUM1, &p_n2 as NUM2
+                FROM DUAL)
+SELECT MAX(LEVEL) AS "최대 공약수"
+    FROM NUM_D
+    WHERE MOD(NUM1, LEVEL) = 0
+        AND MOD(NUM2, LEVEL) = 0
+    CONNECT BY LEVEL <= NUM2;
+
+
+--122. SQL로 알고리즘 문제 풀기 12 (최소 공배수)
+ACCEPT p_N1 prompt ' 첫 번재 숫자를 입력하세요.';
+ACCEPT p_N2 prompt ' 두 번째 숫자를 입력하세요.';
+
+WITH NUM_D AS (SELECT &P_N1 NUM1, &P_N2 NUM2
+                    FROM DUAL)
+SELECT NUM1, NUM2,
+        (NUM1/MAX(LEVEL))*(NUM2/MAX(LEVEL))*MAX(LEVEL) AS "최소 공배수"
+    FROM NUM_D
+    WHERE MOD(NUM1, LEVEL) = 0
+        AND MOD(NUM2, LEVEL) = 0
+    CONNECT BY LEVEL <= NUM2;
+
+
+--123. SQL로 알고리즘 문제 풀기 13 (피타고라스의 정리)
+ACCEPT NUM1 PROMPT '밑변의 길이를 입력하세요 ~ '
+ACCEPT NUM2 PROMPT '높이를 입력하세요 ~ '
+ACCEPT NUM3 PROMPT '빗변의 길이를 입력하세요 ~ '
+
+SELECT CASE WHEN
+        ( POWER(&NUM1, 2) + POWER(&NUM2, 2)  ) = POWER(&NUM3, 2)
+            THEN '직각삼각형이 맞습니다'
+            ELSE '직각삼각형이 아닙니다' END AS "피타고라스의 정리"
+    FROM DUAL;
+
+
+--124. SQL로 알고리즘 문제 풀기 14 (몬테카를로 알고리즘)
+SELECT SUM(CASE WHEN (POWER(NUM1,2) + POWER(NUM2,2)) <= 1  THEN 1
+                ELSE 0 END ) / 100000 * 4 as "원주율"
+ FROM ( 
+           SELECT DBMS_RANDOM.VALUE(0,1) AS NUM1,
+                  DBMS_RANDOM.VALUE(0,1) AS NUM2
+             FROM DUAL
+             CONNECT BY LEVEL < 100000
+        ) ; 
+
+
+--125. SQL로 알고리즘 문제 풀기 15 (오일러 상수 자연상수 구하기)
+WITH LOOP_TABLE AS (SELECT LEVEL AS NUM FROM DUAL
+                        CONNECT BY LEVEL <= 1000000
+                    )
+SELECT RESULT
+        FROM (
+            SELECT NUM, POWER((1+1/NUM) , NUM) AS RESULT
+                    FROM LOOP_TABLE
+                )
+        WHERE NUM = 1000000;
+        
