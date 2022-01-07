@@ -590,3 +590,129 @@ emp_cursor의 데이터 첫 행을 v_ename, v_sal, v_deptno에 담음
 emp_cursor에 데이터가 발견되지 않을 때 loop문 종료
 v_ename, v_sal, v_deptno에 담겨진 데이터 출력
 */
+
+
+--148. PL/SQL Cursor문 이해하기 (FOR LOOP)
+set serveroutput on
+set verify off
+accept p_deptno prompt '부서 번호를 입력하세요 ~'
+declare
+     cursor emp_cursor is           
+       select ename, sal, deptno     
+         from emp                    
+         where deptno = &p_deptno;     
+begin
+     for emp_record in emp_cursor   loop 
+      dbms_output.put_line(emp_record.ename ||' '||emp_record.sal 
+                                   ||' '||emp_record.deptno);
+     end loop;
+end;
+/
+--커서문+For Loop -> 부서번호 물어보고 부서번호 입력하면 해당 사원 이름, 월급, 부서번호 출력
+
+/*
+cursor메모리 영역에 올린 데이터를 for loop문을 이용하여 화면에 출력
+
+'부서번호를 입력하세요~' 메시지 출력 - 입력한 값을 받아 p_deptno에 입력
+p_deptno에 입력된 숫자가 부서번호인 사원들의 이름 등을 검색하여 메모리에 올리고
+해당 메모리 영역의 이름을 emp_cursor라고 지정함
+emp_cursor 커서의 데이터를 첫 행부터 하나씩 emp_record 변수에 담아냄
+emp_reocrd 조합 변수는 emp_cursor의 컬럼들과 동일함
+커서에서 추출한 행을 하나씩 화면에 출력 - 루프문 종료
+*/
+
+
+--149. PL/SQL Cursor for loop문 이해하기
+set serveroutput on
+set verify off
+accept p_deptno prompt '부서 번호를 입력하세요 ~'
+begin
+  for emp_record in ( select  ename, sal, deptno
+                           from  emp                  
+                          where deptno = &p_deptno )  loop 
+
+     dbms_output.put_line(emp_record.ename ||' '||
+                                       emp_record.sal ||' ' || emp_record.deptno);
+
+  end loop;
+end;
+/
+
+/*
+서브쿼리를 사용한 CURSOR FOR LOOP문을 사용하여 앞의 예제 좀더 간단하게 작성
+declare절에 커서를 선언하지 않고 실행 절 for loop문에서 바로 커서를 선언해서 사용하는 예제
+
+for 레코드 이름 in 다음에 괄호를 열고 메모리 커서에 올릴 데이터를 검색하는 쿼리문 작성
+accept 절에서 받은 p_deptno에 입력된 부서 번호와 이름, 월급, 부서 번호가 메모리에 올라감
+메모리에 올라간 데이터를 위에서부터 한 행씩 emp_record에 입력하는 작업을 반복하며 loop문 수행
+*/
+
+
+--150. 프로시저 구현하기
+create or replace procedure pro_ename_sal
+(p_ename    in emp.ename%type)
+is
+        v_sal   emp.sal%type;
+begin
+        select sal into v_sal
+            from emp
+            where ename = p_ename;
+    dbms_output.put_line(v_sal || 'won'); --won 자리에 한글쓰면 오류(서버/클라이언트 CHARACTERSET 호환 맞춰야함)
+    
+end;
+/
+--이름을 입력받아 해당 사원의 월급이 출력되게 하는 프로시저 생성
+
+/*
+프로시저(Procedure)를 생성하면 PL/SQL 코드를 데이터베이스에 저장하고 호출할 수 있음
+create: PL/SQL을 컴파일하여 데이터베이스에 저장하는 명령어
+PL/SQL 코드가 데이터베이스에 저장이 되면 권한만 있으면 PL/SQL 코드를 호출할 수 있음
+exec pro_ename_sal('SCOTT');는 프로시저를 호출하여 실행하는 문장
+
+create replace문: pro_ename_sal이라는 이름의 프로시저가 기존 데이터베이스에 없으면 생성하고 
+있으면 PL/SQL 코드로 변경
+
+p_name: 프로시저를 실행할 때 입력할 매개변수
+in: p_ename을 입력용 매개변수로 사용하겠다는 의미
+
+is 다음에 선언한 v_sal: PL/SQL 블록 내에서 사용할 내부 변수
+(매개변수와 구별되기 위해 v_로 변수명을 시작함)
+v_sal 매개변수는 emp 테이블의 sal의 데이터 타입을 그대로 따름
+
+p_ename에 SCOTT가 입력되었으므로 사원 SCOTT의 월급을 v_sal 변수에 담음
+dbms_output.put_line에 의하여 v_sal 변수의 내용을 출력함
+*/
+
+
+--151. 함수 구현하기
+create or replace function get_loc
+(p_deptno in dept.deptno%type)
+return  dept.loc%type
+is
+        v_loc   dept.loc%type;
+begin
+        select loc into v_loc
+                from dept
+                where deptno = p_deptno;
+    return v_loc;
+end;
+/
+--부서 번호를 입력받아 해당 부서 사원들의 부서 위치가 출력되는 함수 생성
+--sqlplus에 쓰는 쿼리문: select ename, get_loc(deptno) as loc from emp where job = 'SALESMAN';
+
+/*
+함수 생성 지워: 사용자가 직접 필요한 함수를 생성하여 사용할 수 있도록 함
+
+get_loc 함수를 create로 생성
+p_deptno 매개변수 선언: 함수를 실행할 때 입력할 값을 받음/dept 테이블의 loc의 데이터 타입 그대로 사용
+get_loc 함수의 출력 결과 데이터의 유형을 return과 함께 작성함
+(dept 테이블의 loc 컬럼의 데이터 타입(dept.loc%type)을 사용해서 return
+varchar2(13) 대신 dept.loc%type 사용
+-> 데이터베이스의 dept 테이블 loc 컬럼의 데이터 타입의 길이가 변경되어도 PL/SQL 코드 수정 필요X)
+
+v_loc 선언: 부서 위치 데이터를 담을 변수 / 데이터 타입은 dept 테이블의 loc 컬럼 데이터 타입 그대로
+
+변수 p_deptno에 30이 들어있으므로 부서번호 30번의 부서 위치를 dept 테이블로 추출하여 v_loc변수에 입력
+
+v_loc 변수의 내용을 반환함
+*/
