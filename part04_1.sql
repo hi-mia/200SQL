@@ -355,3 +355,238 @@ begin
         
         dbms_output.put_line('총합은: ' || v_sum);
 end;
+/
+
+/*
+PL/SQL: Procedure Language SQL
+비절차적인 언어인 SQL에 프로그래밍 요소를 가미해서 절차적으로 처리하게 하는 데이터베이스 프로그래밍 언어
+단순 작업 반복 -> PL/SQL 사용하면 엑셀 매크로처럼 단순 작업 자동화 가능
+
+PL/SQL 사용하면 sqlplus로그인 해야 한다
+1) 로그인: sqlplus 아이디/비밀번호
+2) SQL> edit p139
+3) 메모장 실행하면 위의 예제 붙여넣고 저장
+4) SQL> @p139
+이렇게 하면 실행이 된다
+
+dbms_output: 변수에 있는 값을 화면에 출력하는 put_line 함수를 포함하고 있는 패키지
+dbms_out.put_line 인자값의 결과를 화면에 출력하려면 반드시 serveroutput을 on으로 설정해야 함
+
+accept: 받아들이라는 sqlplus 명령어
+p_num1: 외부 변수 / declare부터 end 사이가 내부이고 그 외는 전부 외부
+prompt: 메시지를 화면에 출력
+declare: 선언절 / 변수, 상수, 커서, 예외 등을 선언할 수 있음
+begin: 실행 절 / 실행문을 기술
+:= : 할당 연산자 / 할당 연산자 오른쪽의 문장인 &p_num1 + &p_num2가 실행되고 계산된 값이 v_sum에 할당됨
+실행문 맨 마지막에는 세미콜론(;)으로 종료함
+
+dbms_output.put_line은 v_sum의 내용을 출력
+dbms_output은 화면에 출력을 하는 패키지
+put_line: dbms_output 패키지의 함수
+
+end; : PL/SQL 블록 종료
+슬래쉬(/)로 PL/SQL문을 종료
+*/
+
+
+--140. PL/SQL 변수 이해하기 2
+set serveroutput on
+accept p_empno prompt   '사원 번호를 입력하세요 ~ '
+    declare
+            v_sal   number(10);
+    begin  
+            select sal into v_sal
+              from emp
+              where empno = &p_empno;
+    dbms_output.put_line('해당 사원의 월급은 ' || v_sal);
+end;
+/
+--사원 번호를 물어보게 하고 사원 번호를 입력하면 해당 사원의 월급이 출력되게 하는 PL/SQL문
+--실행 절에 SELECT .. INTO절을 이용하면 테이블의 데이터를 검색하여 화면에 출력할 수 있음
+
+--141. PL/SQL IF 이해하기 1 (IF ~ ELSE문)
+set serveroutput on
+set verify off
+accept  p_num   prompt  '숫자를 입력하세요 ~  '
+begin
+    if  mod(&p_num, 2) = 0  then
+        dbms_output.put_line('짝수입니다.');
+    else
+        dbms_output.put_line('홀수입니다.');
+    end if;
+end;
+/
+--숫자를 물어보게 하고 숫자를 입력하면 해당 숫자가 짝수인지 홀수인지 출력되게 하는 PL/SQL
+
+/*
+set verify off: PL/SQL 코드를 실행할 때 변수에 들어가는 값을 보여주는 과정 출력X
+[숫자를 입력하세요 ~ 2
+구  2: if   mod(&p_num, 2) = 0 then --출력X
+신  2: if   mod(2, 2) = 0 then --출력X
+짝수입니다]
+*/
+
+
+--142. PL/SQL IF 이해하기 2 (IF ~ ELSEIF ~ ELSE문)
+set serveroutput on
+set verify off
+accept p_ename prompt '사원 이름을 입력합니다 ~ '
+declare
+    v_ename emp.ename%type := upper('&p_ename');
+    v_sal   emp.sal%type;
+
+begin
+    select sal into v_sal
+        from emp
+        where ename = v_ename;
+
+    if  v_sal >= 3000    then
+        dbms_output.put_line('고소득자입니다.');
+    elsif   v_sal >= 2000   then
+        dbms_output.put_line('중간 소득자입니다.');
+    else
+        dbms_output.put_line('저소득자입니다.');
+    end if;
+end;
+/
+--이름을 입력받아 해당 사원의 월급 구간에 따라 고소득자/중간 소득자/저소득자 메시지 출력 PL/SQL문
+/*
+ename.ename%type: v_ename 변수의 데이터 타입을 emp 테이블의 ename 데이터 타입으로 설정하겠다는 의미
+-> emp 테이블의 ename 데이터 타입의 변화가 생겨도 PL/SQL 프로그램을 수정할 필요가 없어짐
+upper('p_ename')에 의하여 p_ename의 영문 이름이 대문자로 변환되어 할당 연산자(:=)에 의하여 v_ename에 할당됨
+
+v_sal   emp.sal%type;
+v_sal 변수를 emp.sal%type에 의하여 emp 테이블의 sal 데이터 타입을 그대로 따르겠다고 선언
+*/
+
+
+--143. PL/SQL Basic Loop 이해하기
+set serveroutput on
+declare   
+      v_count    number(10) := 0 ;  --변수를 숫자형으로 선언, 숫자 0 할당
+begin
+      loop
+        v_count  :=  v_count + 1; 
+   dbms_output.put_line ( '2 x ' || v_count || ' = ' ||  2*v_count);                          
+        exit when v_count = 9;
+     end loop; --지정된 횟수만큼 반복
+end;
+/
+
+--구구단 2단 출력
+
+
+--144. PL/SQL While Loop 이해하기
+set serveroutput on
+declare
+        v_count     number(10) := 0; --변수를 숫자형으로 선언, 숫자 0 할당
+begin
+        while v_count < 9 loop
+            v_count := v_count + 1;
+            dbms_output.put_line ('2 x ' || v_count || '=' || 2 * v_count);
+        end loop; --while loop 종료
+end;
+/
+
+/*
+While loop문: exit when절(X) / while과 loop 사이에 조건을 주어 해당 조건일 때만 loop문이 수행
+
+[While loop문 문법]
+[While 루프문을 반복시킬 조건 loop
+  반복할 실행문
+  End loop;]
+
+while 조건 loop로 조건이 TRUE인 동안에만 loop문이 수행됨 / v_count가 9보다 작을 동안에만 loop문 수행
+
+*/
+
+
+--145. PL/SQL for Loop 이해하기
+set serveroutput on
+begin
+    for i in 1 .. 9 loop
+        dbms_output.put_line ('2 x ' || i || ' = ' || 2 * i);
+    end loop;
+end;
+/
+
+/*
+basic loop / while loop / for loop 중에서 
+for loop문이 코드가 가장 단순함 + 무한 루프에 빠질 가능성이 가장 적음 
+(basic loop: exit when절 빼먹으면 무한루프 / while loop: 루프조건 잘못 주면 무한 루프)
+
+[For loop문 문법]
+[For 인덱스 카운터 in 하한값..상한값
+  반복할 실행문
+End loop;]
+*/
+
+
+--146. PL/SQL 이중 Loop문 이해하기
+set serveroutput on
+prompt 구구단 전체를 출력합니다
+begin
+    for i in 2 .. 9 loop
+      for j in 1 .. 9 loop
+        dbms_output.put_line( i || ' x ' || j || ' = ' || i * j);
+      end loop;
+    end loop;
+end;
+/
+
+/*
+구구단 전체 출력 = 루프문 중첩
+
+[중첩 for loop문 문법]
+[For 인덱스 카운터 in 하한값 .. 상한값      --바깥쪽 루프문
+    For 인덱스 카운터 in 하한값 .. 상한값   --안쪽 루프문
+                        반복할 실행문
+    End loop;                              --안쪽 루프문 종료
+End loop;                                  --바깥쪽 루프문 종료
+]
+
+바깥쪽 loop문이 인덱스 카운트 i를 2부터 9까지 실행하면서 안쪽 실행문을 각각 8번 실행
+안쪽 실행문은 loop문
+안쪽의 loop문이 인덱스 카운트 j를 1부터 9까지 실행하면서 dbms_output.put_line을 9번 실행함
+*/
+
+
+--147. PL/SQL Cursor문 이해하기 (Basic LOOP)
+set serveroutput on
+set verify off --과정 생략
+declare
+    v_ename   emp.ename%type;
+    v_sal     emp.sal%type;
+    v_deptno  emp.deptno%type;
+  
+    cursor emp_cursor is
+       select ename, sal, deptno
+         from emp
+         where deptno = &p_deptno;
+begin
+    open  emp_cursor ;
+     loop
+          fetch  emp_cursor into v_ename, v_sal, v_deptno;
+          exit  when  emp_cursor%notfound;
+          dbms_output.put_line(v_ename||' '||v_sal||' '|| v_deptno);        
+     end loop;
+   close  emp_cursor;             
+end;               
+/
+/*  PL/SQL문의 커서문과 Basic 루프문을 활용해서 부서번호를 물어보게 하고,
+부서 번호를 입력하면 해당 부서 사원 이름, 월급, 부서 번호가 출력 */
+
+/*
+CURSOR: PL/SQL 프로그램에서 처리할 데이터를 저장할 메모리 영역
+데이터베이스 프로그래밍을 하다 보면 테이블에서 데이터를 한 건씩 가져 오는게 아니라
+여러 개의 행을 한 번에 가져와야하는 경우 발생
+
+10번 부서 번호인 사원들의 이름, 월급, 부서 번호를 검색하여 메모리에 올리고, 메모리 여역의 이름을
+emp_cursor로 지정함
+
+emp_cursor 메모리 영역을 열음
+커서의 데이터를 변수에 담기 위해 basic loop문 실행
+emp_cursor의 데이터 첫 행을 v_ename, v_sal, v_deptno에 담음
+emp_cursor에 데이터가 발견되지 않을 때 loop문 종료
+v_ename, v_sal, v_deptno에 담겨진 데이터 출력
+*/
