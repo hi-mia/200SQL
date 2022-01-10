@@ -1,13 +1,21 @@
 --34. IF문을 SQL로 구현하기 1 (DECODE)
 SELECT ename, deptno, DECODE(deptno, 10, 300, 20, 400, 0) as 보너스
     FROM emp;
---DECODE의 맨 끝 값: 앞의 값에 만족하지 않는 데이터라면 출력하는 값(default) / 생략가능
+
+/*
+부서번호가 10번이면 300 / 20번이면 400 / 10번, 20번이 아니면 0으로 출력
+IF DEPTNO = 10 THEN 300
+ELSE IF DEPTNO = 20 THEN 400
+ELSE 0
+
+DECODE의 맨 끝 값: 앞의 값에 만족하지 않는 데이터라면 출력하는 값(default), 생략가능
+*/    
 
 SELECT empno, mod(empno,2), DECODE(mod(empno,2),0,'짝수',1,'홀수') as 보너스
-    FROM emp;
+    FROM emp;  --사원번호 홀수/짝수 출력, default값 없음
     
 SELECT ename, job, DECODE(job, 'SALESMAN', 5000, 2000) as 보너스
-    FROM emp;
+    FROM emp;  --직업이 SALESMAN이면 5000출력, 아니면 2000 출력
 
 
 --35. IF문을 SQL로 구현하기 2 (CASE)
@@ -26,12 +34,12 @@ CASE: 등호(=) 비교와 부등호(>=, <=, >, <) 둘 다 가능
 SELECT ename, job, comm, CASE WHEN comm is null THEN 500
                         ELSE 0 END BONUS
     FROM emp
-    WHERE job IN('SALESMAN', 'ANALYST');
+    WHERE job IN('SALESMAN', 'ANALYST'); --보너스는 커미션이 NULL이면 500 출력, NULL이 아니면 0 출력
     
 SELECT ename, job, CASE WHEN job in('SALESMAN', 'ANALYST') THEN 500
                         WHEN job in('CLERK', 'MANAGER') THEN 400
                     ELSE 0 END as 보너스
-    FROM emp; --직업이 SALESMAN, ANALYST면 500 / CLERK,MANAGER면 400 / 나머지 0
+    FROM emp; --보너스에서 직업이 SALESMAN, ANALYST면 500 / CLERK,MANAGER면 400 / 나머지 0
 
 
 --36. 최대값 출력하기(Max)
@@ -40,7 +48,7 @@ SELECT MAX(sal)
 
 SELECT MAX(sal)
     FROM emp   
-    WHERE job = 'SALESMAN';
+    WHERE job = 'SALESMAN'; --직업 세일즈맨 중 최대 월급
     
 SELECT job, MAX(sal)
     FROM emp
@@ -49,7 +57,7 @@ SELECT job, MAX(sal)
 SELECT job, MAX(sal)
     FROM emp
     WHERE job = 'SALESMAN'
-    GROUP BY job;
+    GROUP BY job; --직업이 세일즈맨인 사원들 중 최대 월급을 직업과 같이 출력
     
 SELECT deptno, MAX(sal)
     FROM emp

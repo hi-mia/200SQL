@@ -133,8 +133,25 @@ SELECT *
 
 /*
 날짜 형식에 대한 정의
-YYYY / YY 또는 RR / MM / MON / DD / DAY / DY / D
-HH24 / MI / SS / WW / IW / W / YEAR / MONTH
+    YYYY / YY 또는 RR / MM / MON / DD / DAY / DY / D
+    HH24 / MI / SS / WW / IW / W / YEAR / MONTH
+
+    YYYY: 연도 4자리
+    YY / RR: 연도 2자리
+    MM: 달의 2자리 값
+    MON: 달의 영문 약어
+    DD: 숫자 형식의 일
+    DAY: 요일
+    DY: 요일 약어
+    D: 요일의 숫자
+    HH24: 시간(0~24)
+    MI: 분(0~59)
+    SS: 초(0~59)
+    WW: 연의 주
+    IW: ISO 표준에 따른 년의 주
+    W: 월의 주
+    YEAR: 영어 철자로 표기된 년도
+    MONTH: 영어 철자로 표기된 달
 */
 
 --YY와 RR은 다르다!
@@ -272,4 +289,26 @@ TRUE AND TRUE => TRUE
 TRUE AND FALSE => FALSE
 TRUE OR FALSE => TRUE (둘 중 하나만 TRUE여도 TRUE를 반환)
 TRUE AND NULL => NULL
+
+<AND 연산자 진리 연산표>
+
+    AND     TRUE        FALSE       NULL
+   TRUE     TRUE        FALSE       NULL
+   FALSE    FALSE       FALSE       FALSE
+   NULL     NULL        FALSE       NULL
+
+
+<OR 연산자 진리 연산표>
+
+    OR      TRUE        FALSE       NULL
+   TRUE     TRUE        TRUE        TRUE
+   FALSE    TRUE        FALSE       NULL
+   NULL     TRUE        NULL        NULL
+
+
+<NOT 연산자 진리 연산표>
+
+    NOT     TRUE        FALSE       NULL
+   TRUE     FALSE       TRUE        NULL
+
 */    
