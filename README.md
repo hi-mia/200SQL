@@ -1,4 +1,6 @@
 # 200SQL
+![sql200](https://user-images.githubusercontent.com/87554077/148722889-79e72743-476d-44d8-b7ed-24e15f218763.jpg)  
+<br>
 [초보자를 위한 SQL 200제]
 ***
 ##### PART 1 「입문」 SQL 첫발 내딛기
